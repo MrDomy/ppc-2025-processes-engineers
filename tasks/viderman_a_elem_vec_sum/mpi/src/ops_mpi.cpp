@@ -39,42 +39,35 @@ bool VidermanAElemVecSumMPI::RunImpl() {
   const size_t element_count = input_vector.size();
   const auto total_procs_size = static_cast<size_t>(total_processes);
 
-  // процессов больше чем элементов
-  if (total_procs_size > element_count) {
-    if (my_rank < element_count) {
-      double single_element = input_vector[my_rank];
-      double final_result = 0.0;
-      MPI_Allreduce(&single_element, &final_result, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-      GetOutput() = final_result;
-    } else {
-      double zero = 0.0;
-      double final_result = 0.0;
-      MPI_Allreduce(&zero, &final_result, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-      GetOutput() = final_result;
-    }
-    return true;
-  }
-
   const size_t base_chunk = element_count / total_procs_size;
   const size_t remaining_elements = element_count % total_procs_size;
+
   size_t my_chunk_size = base_chunk;
   if (my_rank < remaining_elements) {
     my_chunk_size = base_chunk + 1;
   }
 
-  size_t start_position = my_rank * base_chunk;
-  if (my_rank <= remaining_elements && remaining_elements > 0) {
-    start_position += my_rank;
-  } else {
-    start_position += remaining_elements;
+  std::vector<double> local_data(my_chunk_size);
+  std::vector<int> send_counts(total_procs_size);
+  std::vector<int> displacements(total_procs_size);
+
+  size_t displacement = 0;
+  for (size_t i = 0; i < total_procs_size; ++i) {
+    size_t chunk = base_chunk;
+    if (i < remaining_elements) {
+      chunk = base_chunk + 1;
+    }
+    send_counts[i] = static_cast<int>(chunk);
+    displacements[i] = static_cast<int>(displacement);
+    displacement += chunk;
   }
 
-  double process_sum = 0.0;
-  auto segment_start = input_vector.begin() + static_cast<std::ptrdiff_t>(start_position);
-  auto segment_end = segment_start + static_cast<std::ptrdiff_t>(my_chunk_size);
+  MPI_Scatterv(input_vector.data(), send_counts.data(), displacements.data(), MPI_DOUBLE, local_data.data(),
+               static_cast<int>(my_chunk_size), MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
-  for (auto it = segment_start; it != segment_end; ++it) {
-    process_sum += *it;
+  double process_sum = 0.0;
+  for (double value : local_data) {
+    process_sum += value;
   }
 
   double final_result = 0.0;

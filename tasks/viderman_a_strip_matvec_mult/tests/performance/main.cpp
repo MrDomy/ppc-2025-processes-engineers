@@ -18,7 +18,7 @@ class VidermanAStripMatvecMultPerfTests : public ppc::util::BaseRunPerfTests<InT
   void SetUp() override {
     const int base_rows = 500;
     const int base_cols = 500;
-    
+
     std::vector<std::vector<double>> matrix_base(base_rows);
     for (int i = 0; i < base_rows; i++) {
       matrix_base[i].resize(base_cols);
@@ -41,14 +41,14 @@ class VidermanAStripMatvecMultPerfTests : public ppc::util::BaseRunPerfTests<InT
       expected_result_[i] = sum;
     }
     const int multiplier = 4;
-    
+
     std::vector<std::vector<double>> big_matrix;
     std::vector<double> big_vector;
     OutType big_expected;
-    
+
     int big_rows = base_rows * multiplier;
     int big_cols = base_cols * multiplier;
-    
+
     big_matrix.resize(big_rows);
     for (int i = 0; i < big_rows; i++) {
       int block_row = i / base_rows;
@@ -101,7 +101,7 @@ class VidermanAStripMatvecMultPerfTests : public ppc::util::BaseRunPerfTests<InT
     if (output_data.size() != expected_result_.size()) {
       return false;
     }
-    
+
     double max_relative_error = 0.0;
     for (size_t i = 0; i < output_data.size(); ++i) {
       if (std::fabs(expected_result_[i]) > 1e-12) {
@@ -116,7 +116,7 @@ class VidermanAStripMatvecMultPerfTests : public ppc::util::BaseRunPerfTests<InT
         }
       }
     }
-    
+
     return true;
   }
 
@@ -129,8 +129,9 @@ TEST_P(VidermanAStripMatvecMultPerfTests, RunPerfModes) {
   ExecuteTest(GetParam());
 }
 
-const auto kAllPerfTasks = ppc::util::MakeAllPerfTasks<InType, VidermanAStripMatvecMultMPI, VidermanAStripMatvecMultSEQ>(
-    PPC_SETTINGS_viderman_a_strip_matvec_mult);
+const auto kAllPerfTasks =
+    ppc::util::MakeAllPerfTasks<InType, VidermanAStripMatvecMultMPI, VidermanAStripMatvecMultSEQ>(
+        PPC_SETTINGS_viderman_a_strip_matvec_mult);
 
 const auto kGtestValues = ppc::util::TupleToGTestValues(kAllPerfTasks);
 

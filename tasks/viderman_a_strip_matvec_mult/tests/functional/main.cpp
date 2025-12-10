@@ -59,12 +59,13 @@ class VidermanAStripMatvecMultFuncTests : public ppc::util::BaseRunFuncTests<InT
 
   void LoadTestData(const std::string& test_name) {
     std::string filename = "viderman_a_" + test_name + ".txt";
-    std::string test_data_path = "C:/unn/pcc/ppc-2025-processes-engineers/tasks/viderman_a_strip_matvec_mult/data/" + filename;
+    std::string test_data_path = "tasks/viderman_a_strip_matvec_mult/data/" + filename;
     
     std::ifstream file(test_data_path);
     if (!file.is_open()) {
-      throw std::runtime_error("Cannot open test file: " + test_data_path);
+      throw std::runtime_error("Cannot open test file: " + filename);
     }
+
     
     try {
       std::string line = readNextLine(file);
@@ -154,7 +155,8 @@ class VidermanAStripMatvecMultFuncTests : public ppc::util::BaseRunFuncTests<InT
       input_data_ = {matrix, vector};
       
     } catch (const std::exception& e) {
-      throw std::runtime_error(std::string("Error parsing test file: ") + e.what());
+      throw std::runtime_error(std::string("Error parsing test file '") + 
+                              filename + "': " + e.what());
     }
   }
 

@@ -10,9 +10,9 @@ VidermanAStripMatvecMultSEQ::VidermanAStripMatvecMultSEQ(const InType &in) {
 }
 
 bool VidermanAStripMatvecMultSEQ::ValidationImpl() {
-  const InType& input = GetInput();
-  const auto& matrix = input.first;
-  const auto& vector = input.second;
+  const InType &input = GetInput();
+  const auto &matrix = input.first;
+  const auto &vector = input.second;
 
   if (matrix.empty() && vector.empty()) {
     return true;
@@ -21,18 +21,18 @@ bool VidermanAStripMatvecMultSEQ::ValidationImpl() {
   if (matrix.empty() || vector.empty()) {
     return false;
   }
-  
+
   size_t cols = matrix[0].size();
-  for (const auto& row : matrix) {
+  for (const auto &row : matrix) {
     if (row.size() != cols) {
       return false;
     }
   }
-  
+
   if (cols != vector.size()) {
     return false;
   }
-  
+
   return true;
 }
 
@@ -41,16 +41,16 @@ bool VidermanAStripMatvecMultSEQ::PreProcessingImpl() {
 }
 
 bool VidermanAStripMatvecMultSEQ::RunImpl() {
-  const InType& input = GetInput();
-  const auto& matrix = input.first;
-  const auto& vector = input.second;
-  auto& result = GetOutput();
-  
+  const InType &input = GetInput();
+  const auto &matrix = input.first;
+  const auto &vector = input.second;
+  auto &result = GetOutput();
+
   if (matrix.empty() || vector.empty()) {
     result.clear();
     return true;
   }
-  
+
   result.resize(matrix.size());
   for (size_t i = 0; i < matrix.size(); ++i) {
     double sum = 0.0;
@@ -59,7 +59,7 @@ bool VidermanAStripMatvecMultSEQ::RunImpl() {
     }
     result[i] = sum;
   }
-  
+
   return true;
 }
 

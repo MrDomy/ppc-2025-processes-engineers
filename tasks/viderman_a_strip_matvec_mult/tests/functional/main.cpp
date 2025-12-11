@@ -55,7 +55,6 @@ class VidermanAStripMatvecMultFuncTests : public ppc::util::BaseRunFuncTests<InT
     if (!std::getline(file, line)) {
       throw std::runtime_error("Unexpected end of test file");
     }
-    // Удаляем символы возврата каретки для кросс-платформенности
     if (!line.empty() && line.back() == '\r') {
       line.pop_back();
     }
@@ -63,48 +62,33 @@ class VidermanAStripMatvecMultFuncTests : public ppc::util::BaseRunFuncTests<InT
   }
 
   std::string getProjectRoot() {
-    // Пробуем несколько вариантов для определения корня проекта
-    std::vector<std::string> possible_paths = {
-      // Относительные пути
-      ".",
-      "..",
-      "../..",
-      // Стандартный путь для CI
-      std::string(std::filesystem::current_path().string())
-    };
+    std::vector<std::string> possible_paths = {".", "..", "../..",
+                                               std::string(std::filesystem::current_path().string())};
 
-    // Ищем директорию с задачами (tasks)
-    for (const auto& path : possible_paths) {
+    for (const auto &path : possible_paths) {
       std::filesystem::path test_path(path);
       if (std::filesystem::exists(test_path / "tasks" / "viderman_a_strip_matvec_mult" / "data")) {
         return std::filesystem::absolute(test_path).string();
       }
     }
 
-    // Если ничего не нашли, возвращаем текущую директорию
     return std::filesystem::current_path().string();
   }
 
   void LoadTestData(const std::string &test_name) {
     std::string filename = "viderman_a_" + test_name + ".txt";
-    
-    // Получаем путь к данным разными способами
     std::string test_data_path;
     std::string project_root = getProjectRoot();
-    
-    // Пробуем несколько возможных путей
-    std::vector<std::string> possible_paths = {
-      project_root + "/tasks/viderman_a_strip_matvec_mult/data/" + filename,
-      project_root + "/viderman_a_strip_matvec_mult/data/" + filename,
-      "tasks/viderman_a_strip_matvec_mult/data/" + filename,
-      "viderman_a_strip_matvec_mult/data/" + filename,
-      "../data/" + filename,
-      filename
-    };
-    
-    // Ищем существующий файл
+
+    std::vector<std::string> possible_paths = {project_root + "/tasks/viderman_a_strip_matvec_mult/data/" + filename,
+                                               project_root + "/viderman_a_strip_matvec_mult/data/" + filename,
+                                               "tasks/viderman_a_strip_matvec_mult/data/" + filename,
+                                               "viderman_a_strip_matvec_mult/data/" + filename,
+                                               "../data/" + filename,
+                                               filename};
+
     std::ifstream test_file;
-    for (const auto& path : possible_paths) {
+    for (const auto &path : possible_paths) {
       test_file.open(path);
       if (test_file.is_open()) {
         test_data_path = path;
@@ -112,11 +96,11 @@ class VidermanAStripMatvecMultFuncTests : public ppc::util::BaseRunFuncTests<InT
         break;
       }
     }
-    
+
     if (test_data_path.empty()) {
-      throw std::runtime_error("Cannot find test file: " + filename + 
-                               " (searched in multiple locations, current dir: " + 
-                               std::filesystem::current_path().string() + ")");
+      throw std::runtime_error(
+          "Cannot find test file: " + filename +
+          " (searched in multiple locations, current dir: " + std::filesystem::current_path().string() + ")");
     }
 
     std::ifstream file(test_data_path);
@@ -126,14 +110,13 @@ class VidermanAStripMatvecMultFuncTests : public ppc::util::BaseRunFuncTests<InT
 
     try {
       std::string line = readNextLine(file);
-      // Удаляем пробелы в начале и конце для надежности
       size_t start = line.find_first_not_of(" \t\r\n");
       size_t end = line.find_last_not_of(" \t\r\n");
       if (start == std::string::npos) {
         throw std::runtime_error("Empty line instead of 'ROWS'");
       }
       std::string trimmed_line = line.substr(start, end - start + 1);
-      
+
       if (trimmed_line != "ROWS") {
         throw std::runtime_error("Expected 'ROWS', got: '" + line + "' (trimmed: '" + trimmed_line + "')");
       }
@@ -144,14 +127,14 @@ class VidermanAStripMatvecMultFuncTests : public ppc::util::BaseRunFuncTests<InT
         rows = std::stoi(line);
       }
       line = readNextLine(file);
-      
+
       start = line.find_first_not_of(" \t\r\n");
       end = line.find_last_not_of(" \t\r\n");
       if (start == std::string::npos) {
         throw std::runtime_error("Empty line instead of 'COLS'");
       }
       trimmed_line = line.substr(start, end - start + 1);
-      
+
       if (trimmed_line != "COLS") {
         throw std::runtime_error("Expected 'COLS', got: '" + line + "'");
       }
@@ -162,14 +145,14 @@ class VidermanAStripMatvecMultFuncTests : public ppc::util::BaseRunFuncTests<InT
         cols = std::stoi(line);
       }
       line = readNextLine(file);
-      
+
       start = line.find_first_not_of(" \t\r\n");
       end = line.find_last_not_of(" \t\r\n");
       if (start == std::string::npos) {
         throw std::runtime_error("Empty line instead of 'MATRIX'");
       }
       trimmed_line = line.substr(start, end - start + 1);
-      
+
       if (trimmed_line != "MATRIX") {
         throw std::runtime_error("Expected 'MATRIX', got: '" + line + "'");
       }
@@ -190,14 +173,14 @@ class VidermanAStripMatvecMultFuncTests : public ppc::util::BaseRunFuncTests<InT
         }
       }
       line = readNextLine(file);
-      
+
       start = line.find_first_not_of(" \t\r\n");
       end = line.find_last_not_of(" \t\r\n");
       if (start == std::string::npos) {
         throw std::runtime_error("Empty line instead of 'VECTOR'");
       }
       trimmed_line = line.substr(start, end - start + 1);
-      
+
       if (trimmed_line != "VECTOR") {
         throw std::runtime_error("Expected 'VECTOR', got: '" + line + "'");
       }
@@ -214,14 +197,14 @@ class VidermanAStripMatvecMultFuncTests : public ppc::util::BaseRunFuncTests<InT
         }
       }
       line = readNextLine(file);
-      
+
       start = line.find_first_not_of(" \t\r\n");
       end = line.find_last_not_of(" \t\r\n");
       if (start == std::string::npos) {
         throw std::runtime_error("Empty line instead of 'EXPECTED'");
       }
       trimmed_line = line.substr(start, end - start + 1);
-      
+
       if (trimmed_line != "EXPECTED") {
         throw std::runtime_error("Expected 'EXPECTED', got: '" + line + "'");
       }

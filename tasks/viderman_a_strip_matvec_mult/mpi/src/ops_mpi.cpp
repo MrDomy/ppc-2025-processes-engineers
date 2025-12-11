@@ -11,7 +11,7 @@ namespace viderman_a_strip_matvec_mult {
 
 VidermanAStripMatvecMultMPI::VidermanAStripMatvecMultMPI(const InType &in) {
   SetTypeOfTask(GetStaticTypeOfTask());
-  GetInput() = in;
+  GetInput() = InType(in);
 }
 
 bool VidermanAStripMatvecMultMPI::ValidationImpl() {

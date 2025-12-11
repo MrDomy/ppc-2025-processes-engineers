@@ -6,7 +6,7 @@ namespace viderman_a_strip_matvec_mult {
 
 VidermanAStripMatvecMultSEQ::VidermanAStripMatvecMultSEQ(const InType &in) {
   SetTypeOfTask(GetStaticTypeOfTask());
-  GetInput() = in;
+  GetInput() = InType(in);
 }
 
 bool VidermanAStripMatvecMultSEQ::ValidationImpl() {

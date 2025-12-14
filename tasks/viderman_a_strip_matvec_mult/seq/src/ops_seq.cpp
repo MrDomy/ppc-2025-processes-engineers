@@ -1,5 +1,7 @@
 #include "viderman_a_strip_matvec_mult/seq/include/ops_seq.hpp"
 
+#include <cstddef>
+
 #include "viderman_a_strip_matvec_mult/common/include/common.hpp"
 
 namespace viderman_a_strip_matvec_mult {
@@ -22,18 +24,14 @@ bool VidermanAStripMatvecMultSEQ::ValidationImpl() {
     return false;
   }
 
-  size_t cols = matrix[0].size();
+  const size_t cols = matrix[0].size();
   for (const auto &row : matrix) {
     if (row.size() != cols) {
       return false;
     }
   }
 
-  if (cols != vector.size()) {
-    return false;
-  }
-
-  return true;
+  return cols == vector.size();
 }
 
 bool VidermanAStripMatvecMultSEQ::PreProcessingImpl() {

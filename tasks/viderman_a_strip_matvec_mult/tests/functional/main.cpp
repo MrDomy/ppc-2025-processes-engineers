@@ -3,12 +3,14 @@
 #include <array>
 #include <cmath>
 #include <cstddef>
+#include <exception>
 #include <filesystem>
 #include <fstream>
 #include <sstream>
 #include <stdexcept>
 #include <string>
 #include <tuple>
+#include <utility>
 #include <vector>
 
 #include "util/include/func_test_util.hpp"
@@ -50,7 +52,7 @@ class VidermanAStripMatvecMultFuncTests : public ppc::util::BaseRunFuncTests<InT
   }
 
  private:
-  std::string readNextLine(std::ifstream &file) {
+  static std::string ReadNextLine(std::ifstream &file) {
     std::string line;
     if (!std::getline(file, line)) {
       throw std::runtime_error("Unexpected end of test file");
@@ -61,9 +63,8 @@ class VidermanAStripMatvecMultFuncTests : public ppc::util::BaseRunFuncTests<InT
     return line;
   }
 
-  std::string getProjectRoot() {
-    std::vector<std::string> possible_paths = {".", "..", "../..",
-                                               std::string(std::filesystem::current_path().string())};
+  static std::string GetProjectRoot() {
+    std::vector<std::string> possible_paths = {".", "..", "../..", std::filesystem::current_path().string()};
 
     for (const auto &path : possible_paths) {
       std::filesystem::path test_path(path);
@@ -78,7 +79,7 @@ class VidermanAStripMatvecMultFuncTests : public ppc::util::BaseRunFuncTests<InT
   void LoadTestData(const std::string &test_name) {
     std::string filename = "viderman_a_" + test_name + ".txt";
     std::string test_data_path;
-    std::string project_root = getProjectRoot();
+    std::string project_root = GetProjectRoot();
 
     std::vector<std::string> possible_paths = {project_root + "/tasks/viderman_a_strip_matvec_mult/data/" + filename,
                                                project_root + "/viderman_a_strip_matvec_mult/data/" + filename,
@@ -109,7 +110,7 @@ class VidermanAStripMatvecMultFuncTests : public ppc::util::BaseRunFuncTests<InT
     }
 
     try {
-      std::string line = readNextLine(file);
+      std::string line = ReadNextLine(file);
       size_t start = line.find_first_not_of(" \t\r\n");
       size_t end = line.find_last_not_of(" \t\r\n");
       if (start == std::string::npos) {
@@ -121,12 +122,12 @@ class VidermanAStripMatvecMultFuncTests : public ppc::util::BaseRunFuncTests<InT
         throw std::runtime_error("Expected 'ROWS', got: '" + line + "' (trimmed: '" + trimmed_line + "')");
       }
 
-      line = readNextLine(file);
+      line = ReadNextLine(file);
       int rows = 0;
       if (!line.empty()) {
         rows = std::stoi(line);
       }
-      line = readNextLine(file);
+      line = ReadNextLine(file);
 
       start = line.find_first_not_of(" \t\r\n");
       end = line.find_last_not_of(" \t\r\n");
@@ -139,12 +140,12 @@ class VidermanAStripMatvecMultFuncTests : public ppc::util::BaseRunFuncTests<InT
         throw std::runtime_error("Expected 'COLS', got: '" + line + "'");
       }
 
-      line = readNextLine(file);
+      line = ReadNextLine(file);
       int cols = 0;
       if (!line.empty()) {
         cols = std::stoi(line);
       }
-      line = readNextLine(file);
+      line = ReadNextLine(file);
 
       start = line.find_first_not_of(" \t\r\n");
       end = line.find_last_not_of(" \t\r\n");
@@ -160,19 +161,19 @@ class VidermanAStripMatvecMultFuncTests : public ppc::util::BaseRunFuncTests<InT
       std::vector<std::vector<double>> matrix;
       if (rows > 0 && cols > 0) {
         for (int i = 0; i < rows; ++i) {
-          line = readNextLine(file);
+          line = ReadNextLine(file);
           std::istringstream iss(line);
-          std::vector<double> row(cols);
+          std::vector<double> row(static_cast<size_t>(cols));
           for (int j = 0; j < cols; ++j) {
-            if (!(iss >> row[j])) {
+            if (!(iss >> row[static_cast<size_t>(j)])) {
               throw std::runtime_error("Failed to read matrix element at row " + std::to_string(i) + ", col " +
                                        std::to_string(j));
             }
           }
-          matrix.push_back(std::move(row));
+          matrix.push_back(row);
         }
       }
-      line = readNextLine(file);
+      line = ReadNextLine(file);
 
       start = line.find_first_not_of(" \t\r\n");
       end = line.find_last_not_of(" \t\r\n");
@@ -186,17 +187,17 @@ class VidermanAStripMatvecMultFuncTests : public ppc::util::BaseRunFuncTests<InT
       }
 
       std::vector<double> vector;
-      line = readNextLine(file);
+      line = ReadNextLine(file);
       if (cols > 0) {
         std::istringstream iss_vec(line);
-        vector.resize(cols);
+        vector.resize(static_cast<size_t>(cols));
         for (int j = 0; j < cols; ++j) {
-          if (!(iss_vec >> vector[j])) {
+          if (!(iss_vec >> vector[static_cast<size_t>(j)])) {
             throw std::runtime_error("Failed to read vector element at position " + std::to_string(j));
           }
         }
       }
-      line = readNextLine(file);
+      line = ReadNextLine(file);
 
       start = line.find_first_not_of(" \t\r\n");
       end = line.find_last_not_of(" \t\r\n");
@@ -209,10 +210,10 @@ class VidermanAStripMatvecMultFuncTests : public ppc::util::BaseRunFuncTests<InT
         throw std::runtime_error("Expected 'EXPECTED', got: '" + line + "'");
       }
 
-      line = readNextLine(file);
+      line = ReadNextLine(file);
       std::istringstream iss_exp(line);
       expected_vector_.clear();
-      double value;
+      double value = NAN;
       while (iss_exp >> value) {
         expected_vector_.push_back(value);
       }

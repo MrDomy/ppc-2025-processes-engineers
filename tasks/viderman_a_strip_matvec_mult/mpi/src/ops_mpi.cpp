@@ -2,8 +2,8 @@
 
 #include <mpi.h>
 
-#include <algorithm>
 #include <cstddef>
+#include <utility>  // Добавлен для std::pair
 #include <vector>
 
 #include "viderman_a_strip_matvec_mult/common/include/common.hpp"

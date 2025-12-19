@@ -18,6 +18,11 @@
 #include "viderman_a_strip_matvec_mult/mpi/include/ops_mpi.hpp"
 #include "viderman_a_strip_matvec_mult/seq/include/ops_seq.hpp"
 
+// Добавляем пространство имён для использования GTestParamIndex
+namespace ppc::util {
+enum class GTestParamIndex : std::size_t;
+}  // namespace ppc::util
+
 namespace viderman_a_strip_matvec_mult {
 
 class VidermanAStripMatvecMultFuncTests : public ppc::util::BaseRunFuncTests<InType, OutType, TestType> {

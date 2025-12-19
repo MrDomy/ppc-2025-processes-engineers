@@ -3,7 +3,7 @@
 #include <mpi.h>
 
 #include <cstddef>
-#include <utility>  // Добавлен для std::pair
+#include <utility>
 #include <vector>
 
 #include "viderman_a_strip_matvec_mult/common/include/common.hpp"

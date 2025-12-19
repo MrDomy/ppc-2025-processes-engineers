@@ -13,6 +13,7 @@
 #include <vector>
 
 #include "util/include/func_test_util.hpp"
+#include "util/include/util.hpp"
 #include "viderman_a_strip_matvec_mult/common/include/common.hpp"
 #include "viderman_a_strip_matvec_mult/mpi/include/ops_mpi.hpp"
 #include "viderman_a_strip_matvec_mult/seq/include/ops_seq.hpp"
@@ -65,23 +66,46 @@ class VidermanAStripMatvecMultFuncTests : public ppc::util::BaseRunFuncTests<InT
     try {
       std::string line;
       std::getline(file, line);
-      if (line.find("ROWS") == std::string::npos) {
+      line.erase(0, line.find_first_not_of(" \t\r\n"));
+      line.erase(line.find_last_not_of(" \t\r\n") + 1);
+
+      if (line != "ROWS") {
         throw std::runtime_error("Expected 'ROWS', got: '" + line + "'");
       }
 
       std::getline(file, line);
-      int rows = line.empty() ? 0 : std::stoi(line);
+      int rows = 0;
+      if (!line.empty()) {
+        line.erase(0, line.find_first_not_of(" \t\r\n"));
+        line.erase(line.find_last_not_of(" \t\r\n") + 1);
+        if (!line.empty()) {
+          rows = std::stoi(line);
+        }
+      }
 
       std::getline(file, line);
-      if (line.find("COLS") == std::string::npos) {
+      line.erase(0, line.find_first_not_of(" \t\r\n"));
+      line.erase(line.find_last_not_of(" \t\r\n") + 1);
+
+      if (line != "COLS") {
         throw std::runtime_error("Expected 'COLS', got: '" + line + "'");
       }
 
       std::getline(file, line);
-      int cols = line.empty() ? 0 : std::stoi(line);
+      int cols = 0;
+      if (!line.empty()) {
+        line.erase(0, line.find_first_not_of(" \t\r\n"));
+        line.erase(line.find_last_not_of(" \t\r\n") + 1);
+        if (!line.empty()) {
+          cols = std::stoi(line);
+        }
+      }
 
       std::getline(file, line);
-      if (line.find("MATRIX") == std::string::npos) {
+      line.erase(0, line.find_first_not_of(" \t\r\n"));
+      line.erase(line.find_last_not_of(" \t\r\n") + 1);
+
+      if (line != "MATRIX") {
         throw std::runtime_error("Expected 'MATRIX', got: '" + line + "'");
       }
 
@@ -102,7 +126,10 @@ class VidermanAStripMatvecMultFuncTests : public ppc::util::BaseRunFuncTests<InT
       }
 
       std::getline(file, line);
-      if (line.find("VECTOR") == std::string::npos) {
+      line.erase(0, line.find_first_not_of(" \t\r\n"));
+      line.erase(line.find_last_not_of(" \t\r\n") + 1);
+
+      if (line != "VECTOR") {
         throw std::runtime_error("Expected 'VECTOR', got: '" + line + "'");
       }
 
@@ -119,14 +146,17 @@ class VidermanAStripMatvecMultFuncTests : public ppc::util::BaseRunFuncTests<InT
       }
 
       std::getline(file, line);
-      if (line.find("EXPECTED") == std::string::npos) {
+      line.erase(0, line.find_first_not_of(" \t\r\n"));
+      line.erase(line.find_last_not_of(" \t\r\n") + 1);
+
+      if (line != "EXPECTED") {
         throw std::runtime_error("Expected 'EXPECTED', got: '" + line + "'");
       }
 
       std::getline(file, line);
       std::istringstream iss_exp(line);
       expected_vector_.clear();
-      double value;
+      double value = 0.0;
       while (iss_exp >> value) {
         expected_vector_.push_back(value);
       }
@@ -139,7 +169,10 @@ class VidermanAStripMatvecMultFuncTests : public ppc::util::BaseRunFuncTests<InT
       test_tolerance_ = 1e-10;
 
       if (std::getline(file, line)) {
-        if (line.find("TOLERANCE") != std::string::npos) {
+        line.erase(0, line.find_first_not_of(" \t\r\n"));
+        line.erase(line.find_last_not_of(" \t\r\n") + 1);
+
+        if (line == "TOLERANCE") {
           if (std::getline(file, line)) {
             test_tolerance_ = std::stod(line);
           }
@@ -156,7 +189,7 @@ class VidermanAStripMatvecMultFuncTests : public ppc::util::BaseRunFuncTests<InT
   InType input_data_;
   OutType expected_vector_;
   std::string test_name_;
-  double expected_sum_;
+  double expected_sum_ = 0.0;
   double test_tolerance_ = 1e-10;
 };
 

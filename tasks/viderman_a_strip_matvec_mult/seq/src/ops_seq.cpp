@@ -1,6 +1,8 @@
 #include "viderman_a_strip_matvec_mult/seq/include/ops_seq.hpp"
 
 #include <cstddef>
+#include <utility>
+#include <vector>
 
 #include "viderman_a_strip_matvec_mult/common/include/common.hpp"
 

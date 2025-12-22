@@ -19,6 +19,12 @@ namespace viderman_a_convex_hull {
 
 namespace test_utils {
 
+// Объявление функций (FORWARD DECLARATION) - ЭТО ВАЖНО!
+ImageData CreateTestImage(int width, int height, const std::vector<std::vector<Point>> &components);
+
+bool IsConvex(const std::vector<Point> &hull);
+
+// Теперь определение функций
 ImageData CreateTestImage(int width, int height, const std::vector<std::vector<Point>> &components) {
   ImageData image;
   image.width = width;

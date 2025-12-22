@@ -1,0 +1,28 @@
+#pragma once
+
+#include "task/include/task.hpp"
+#include "viderman_a_convex_hull/common/include/common.hpp"
+
+namespace viderman_a_convex_hull {
+
+class VidermanAConvexHullSEQ : public BaseTask {
+ public:
+  static constexpr ppc::task::TypeOfTask GetStaticTypeOfTask() {
+    return ppc::task::TypeOfTask::kSEQ;
+  }
+  explicit VidermanAConvexHullSEQ(const InType &in);
+
+ private:
+  bool ValidationImpl() override;
+  bool PreProcessingImpl() override;
+  bool RunImpl() override;
+  bool PostProcessingImpl() override;
+
+  std::vector<Component> FindConnectedComponents(const ImageData &image);
+  std::vector<Point> BuildConvexHull(const std::vector<Point> &points);
+
+  long long CrossProduct(const Point &O, const Point &A, const Point &B) const;
+  void RemoveDuplicatePoints(std::vector<Point> &points);
+};
+
+}  // namespace viderman_a_convex_hull

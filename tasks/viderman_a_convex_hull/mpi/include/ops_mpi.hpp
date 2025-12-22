@@ -1,7 +1,7 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
-#include <unordered_map>
 #include <vector>
 
 #include "task/include/task.hpp"
@@ -30,23 +30,23 @@ class VidermanAConvexHullMPI : public BaseTask {
   void BuildAllConvexHullsOnRank0();
   void BroadcastFinalResult();
 
-  std::vector<Point> GrahamScan(const std::vector<Point> &points);
-  [[nodiscard]] int64_t CrossProduct(const Point &o, const Point &a, const Point &b) const;
+  static std::vector<Point> GrahamScan(const std::vector<Point> &points);
+  [[nodiscard]] static int64_t CrossProduct(const Point &o, const Point &a, const Point &b);
 
-  int FindRoot(std::vector<int> &parent, int x);
-  void UnionSets(std::vector<int> &parent, std::vector<int> &rank, int x, int y);
+  static int FindRoot(std::vector<int> &parent, int x);
+  static void UnionSets(std::vector<int> &parent, std::vector<int> &rank, int x, int y);
 
-  void RemoveDuplicatePoints(std::vector<Point> &points);
-  [[nodiscard]] int64_t PointToHash(const Point &p) const;
+  static void RemoveDuplicatePoints(std::vector<Point> &points);
+  [[nodiscard]] static int64_t PointToHash(const Point &p);
 
-  int rank_ = 0;
-  int size_ = 1;
+  int rank_{0};
+  int size_{1};
 
-  int width_ = 0;
-  int height_ = 0;
-  int start_row_ = 0;
-  int end_row_ = 0;
-  int local_rows_ = 0;
+  int width_{0};
+  int height_{0};
+  int start_row_{0};
+  int end_row_{0};
+  int local_rows_{0};
 
   ImageData local_image_;
   std::vector<Component> local_components_;

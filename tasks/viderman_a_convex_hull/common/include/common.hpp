@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 #include <string>
 #include <tuple>
@@ -18,8 +19,8 @@ struct Component {
 };
 
 struct ImageData {
-  int width;
-  int height;
+  int width{0};
+  int height{0};
   std::vector<uint8_t> pixels;
 };
 

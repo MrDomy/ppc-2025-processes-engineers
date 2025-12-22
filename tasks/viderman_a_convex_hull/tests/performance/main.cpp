@@ -1,5 +1,10 @@
 #include <gtest/gtest.h>
 
+#include <cstddef>
+#include <cstdint>
+#include <random>
+#include <vector>
+
 #include "util/include/perf_test_util.hpp"
 #include "viderman_a_convex_hull/common/include/common.hpp"
 #include "viderman_a_convex_hull/mpi/include/ops_mpi.hpp"
@@ -10,20 +15,13 @@ namespace viderman_a_convex_hull {
 class VidermanARunPerfConvexHull : public ppc::util::BaseRunPerfTests<InType, OutType> {
  protected:
   void SetUp() override {
-    int size = 1024;
-    input_data_ = CreateSimpleImage(size, size);
+    const int size = 4096;
+    input_data_ = CreateComplexImage(size, size);
   }
 
   bool CheckTestOutputData(OutType &output_data) final {
-    if (!output_data.empty()) {
-      for (const auto &component : output_data) {
-        if (component.pixels.empty()) {
-          return false;
-        }
-      }
-      return true;
-    }
-    return true;
+    return output_data.empty() ||
+           std::ranges::all_of(output_data, [](const auto &component) { return !component.pixels.empty(); });
   }
 
   InType GetTestInputData() final {
@@ -33,20 +31,47 @@ class VidermanARunPerfConvexHull : public ppc::util::BaseRunPerfTests<InType, Ou
  private:
   InType input_data_;
 
-  static ImageData CreateSimpleImage(int width, int height) {
+  static ImageData CreateComplexImage(int width, int height) {
     ImageData image;
     image.width = width;
     image.height = height;
     image.pixels.resize(static_cast<size_t>(width) * static_cast<size_t>(height), 0);
 
-    if (width > 0 && height > 0) {
-      image.pixels[0] = 255;
-      image.pixels[width - 1] = 255;
-      image.pixels[(height - 1) * width] = 255;
-      image.pixels[(height - 1) * width + (width - 1)] = 255;
+    std::mt19937 gen(42);
+    std::uniform_int_distribution<> dist_x(0, width - 1);
+    std::uniform_int_distribution<> dist_y(0, height - 1);
 
-      if (width > 1 && height > 1) {
-        image.pixels[(height / 2) * width + (width / 2)] = 255;
+    const size_t num_random_points = (static_cast<size_t>(width) * static_cast<size_t>(height)) / 200;
+    for (size_t idx = 0; idx < num_random_points; ++idx) {
+      const int x = dist_x(gen);
+      const int y = dist_y(gen);
+      image.pixels[(static_cast<size_t>(y) * static_cast<size_t>(width)) + static_cast<size_t>(x)] = 255;
+    }
+
+    for (int square_idx = 0; square_idx < 8; ++square_idx) {
+      const int square_size = 40 + square_idx * 20;
+      const int start_x = (square_idx * 150) % (width - square_size);
+      const int start_y = (square_idx * 120) % (height - square_size);
+
+      for (int dy = 0; dy < square_size; ++dy) {
+        for (int dx = 0; dx < square_size; ++dx) {
+          const int x = start_x + dx;
+          const int y = start_y + dy;
+          if (x < width && y < height) {
+            image.pixels[(static_cast<size_t>(y) * static_cast<size_t>(width)) + static_cast<size_t>(x)] = 255;
+          }
+        }
+      }
+    }
+
+    for (int line_idx = 0; line_idx < 10; ++line_idx) {
+      const int length = 300;
+      for (int j = 0; j < length; ++j) {
+        const int x = (line_idx * 80 + j * 2) % width;
+        const int y = (line_idx * 60 + j) % height;
+        if (x < width && y < height) {
+          image.pixels[(static_cast<size_t>(y) * static_cast<size_t>(width)) + static_cast<size_t>(x)] = 255;
+        }
       }
     }
 

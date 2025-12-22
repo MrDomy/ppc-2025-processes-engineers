@@ -1,6 +1,5 @@
 #include <gtest/gtest.h>
 
-#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -11,19 +10,18 @@
 #include <vector>
 
 #include "util/include/func_test_util.hpp"
-#include "util/include/util.hpp"
 #include "viderman_a_convex_hull/common/include/common.hpp"
 #include "viderman_a_convex_hull/seq/include/ops_seq.hpp"
 
 namespace viderman_a_convex_hull {
 
-namespace test_utils {
+namespace {
 
-ImageData CreateTestImage(int width, int height, const std::vector<std::vector<Point>> &components);
+static ImageData CreateTestImage(int width, int height, const std::vector<std::vector<Point>> &components);
 
-bool IsConvex(const std::vector<Point> &hull);
+static bool IsConvex(const std::vector<Point> &hull);
 
-ImageData CreateTestImage(int width, int height, const std::vector<std::vector<Point>> &components) {
+static ImageData CreateTestImage(int width, int height, const std::vector<std::vector<Point>> &components) {
   ImageData image;
   image.width = width;
   image.height = height;
@@ -32,9 +30,9 @@ ImageData CreateTestImage(int width, int height, const std::vector<std::vector<P
   for (const auto &component : components) {
     for (const auto &point : component) {
       if (point.first >= 0 && point.first < width && point.second >= 0 && point.second < height) {
-        image
-            .pixels[static_cast<size_t>(point.second) * static_cast<size_t>(width) + static_cast<size_t>(point.first)] =
-            255;
+        const size_t index =
+            (static_cast<size_t>(point.second) * static_cast<size_t>(width)) + static_cast<size_t>(point.first);
+        image.pixels[index] = 255;
       }
     }
   }
@@ -42,7 +40,7 @@ ImageData CreateTestImage(int width, int height, const std::vector<std::vector<P
   return image;
 }
 
-bool IsConvex(const std::vector<Point> &hull) {
+static bool IsConvex(const std::vector<Point> &hull) {
   if (hull.size() < 3) {
     return true;
   }
@@ -50,12 +48,14 @@ bool IsConvex(const std::vector<Point> &hull) {
   bool has_positive = false;
   bool has_negative = false;
 
-  for (size_t i = 0; i < hull.size(); ++i) {
-    size_t j = (i + 1) % hull.size();
-    size_t k = (i + 2) % hull.size();
+  for (size_t idx = 0; idx < hull.size(); ++idx) {
+    const size_t j = (idx + 1) % hull.size();
+    const size_t k = (idx + 2) % hull.size();
 
-    long long cross = (hull[j].first - hull[i].first) * (hull[k].second - hull[j].second) -
-                      (hull[j].second - hull[i].second) * (hull[k].first - hull[j].first);
+    const int64_t cross = ((static_cast<int64_t>(hull[j].first - hull[idx].first) *
+                            static_cast<int64_t>(hull[k].second - hull[j].second)) -
+                           (static_cast<int64_t>(hull[j].second - hull[idx].second) *
+                            static_cast<int64_t>(hull[k].first - hull[j].first)));
 
     if (cross > 0) {
       has_positive = true;
@@ -72,7 +72,7 @@ bool IsConvex(const std::vector<Point> &hull) {
   return true;
 }
 
-}  // namespace test_utils
+}  // namespace
 
 class VidermanARunFuncConvexHull : public ppc::util::BaseRunFuncTests<InType, OutType, TestType> {
  public:
@@ -88,39 +88,39 @@ class VidermanARunFuncConvexHull : public ppc::util::BaseRunFuncTests<InType, Ou
 
     switch (test_case_) {
       case 0: {
-        input_data_ = {10, 10, std::vector<uint8_t>(100, 0)};
+        input_data_ = {.width = 10, .height = 10, .pixels = std::vector<uint8_t>(100, 0)};
         expected_count_ = 0;
         break;
       }
       case 1: {
         std::vector<std::vector<Point>> components = {{{5, 5}}};
-        input_data_ = test_utils::CreateTestImage(10, 10, components);
+        input_data_ = CreateTestImage(10, 10, components);
         expected_count_ = 1;
         break;
       }
       case 2: {
         std::vector<std::vector<Point>> components = {{{5, 3}, {5, 4}, {5, 5}, {5, 6}}};
-        input_data_ = test_utils::CreateTestImage(10, 10, components);
+        input_data_ = CreateTestImage(10, 10, components);
         expected_count_ = 1;
         break;
       }
       case 3: {
         std::vector<std::vector<Point>> components = {{{3, 5}, {4, 5}, {5, 5}, {6, 5}}};
-        input_data_ = test_utils::CreateTestImage(10, 10, components);
+        input_data_ = CreateTestImage(10, 10, components);
         expected_count_ = 1;
         break;
       }
       case 4: {
         std::vector<std::vector<Point>> components = {
             {{2, 2}, {3, 2}, {4, 2}, {2, 3}, {3, 3}, {4, 3}, {2, 4}, {3, 4}, {4, 4}}};
-        input_data_ = test_utils::CreateTestImage(10, 10, components);
+        input_data_ = CreateTestImage(10, 10, components);
         expected_count_ = 1;
         break;
       }
       case 5: {
         std::vector<std::vector<Point>> components = {{{1, 1}, {2, 1}, {1, 2}, {2, 2}},
                                                       {{6, 6}, {7, 6}, {6, 7}, {7, 7}}};
-        input_data_ = test_utils::CreateTestImage(10, 10, components);
+        input_data_ = CreateTestImage(10, 10, components);
         expected_count_ = 2;
         break;
       }
@@ -139,7 +139,7 @@ class VidermanARunFuncConvexHull : public ppc::util::BaseRunFuncTests<InType, Ou
       return output_data.empty();
     }
 
-    for (const auto &component : output_data) {
+    return std::ranges::all_of(output_data, [this](const auto &component) {
       if (component.pixels.empty()) {
         return false;
       }
@@ -148,7 +148,7 @@ class VidermanARunFuncConvexHull : public ppc::util::BaseRunFuncTests<InType, Ou
         return false;
       }
 
-      if (!test_utils::IsConvex(component.hull)) {
+      if (!IsConvex(component.hull)) {
         return false;
       }
 
@@ -159,9 +159,9 @@ class VidermanARunFuncConvexHull : public ppc::util::BaseRunFuncTests<InType, Ou
       if ((test_case_ == 2 || test_case_ == 3) && component.hull.size() != 2) {
         return false;
       }
-    }
 
-    return true;
+      return true;
+    });
   }
 
   InType GetTestInputData() final {

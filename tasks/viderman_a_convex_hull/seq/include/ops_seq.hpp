@@ -1,5 +1,8 @@
 #pragma once
 
+#include <cstdint>
+#include <vector>
+
 #include "task/include/task.hpp"
 #include "viderman_a_convex_hull/common/include/common.hpp"
 
@@ -21,7 +24,7 @@ class VidermanAConvexHullSEQ : public BaseTask {
   std::vector<Component> FindConnectedComponents(const ImageData &image);
   std::vector<Point> BuildConvexHull(const std::vector<Point> &points);
 
-  long long CrossProduct(const Point &O, const Point &A, const Point &B) const;
+  int64_t CrossProduct(const Point &o, const Point &a, const Point &b) const;
   void RemoveDuplicatePoints(std::vector<Point> &points);
 };
 

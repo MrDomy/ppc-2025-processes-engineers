@@ -34,9 +34,9 @@ bool VidermanAConvexHullSEQ::PreProcessingImpl() {
   return true;
 }
 
-long long VidermanAConvexHullSEQ::CrossProduct(const Point &O, const Point &A, const Point &B) const {
-  return static_cast<long long>(A.first - O.first) * static_cast<long long>(B.second - O.second) -
-         static_cast<long long>(A.second - O.second) * static_cast<long long>(B.first - O.first);
+int64_t VidermanAConvexHullSEQ::CrossProduct(const Point &o, const Point &a, const Point &b) const {
+  return static_cast<int64_t>(a.first - o.first) * static_cast<int64_t>(b.second - o.second) -
+         static_cast<int64_t>(a.second - o.second) * static_cast<int64_t>(b.first - o.first);
 }
 
 void VidermanAConvexHullSEQ::RemoveDuplicatePoints(std::vector<Point> &points) {
@@ -68,15 +68,15 @@ std::vector<Point> VidermanAConvexHullSEQ::BuildConvexHull(const std::vector<Poi
   Point pivot = pts[0];
 
   std::sort(pts.begin() + 1, pts.end(), [&pivot, this](const Point &a, const Point &b) {
-    long long cross = CrossProduct(pivot, a, b);
+    int64_t cross = CrossProduct(pivot, a, b);
     if (cross != 0) {
       return cross > 0;
     }
 
-    long long dist_a = static_cast<long long>(a.first - pivot.first) * (a.first - pivot.first) +
-                       static_cast<long long>(a.second - pivot.second) * (a.second - pivot.second);
-    long long dist_b = static_cast<long long>(b.first - pivot.first) * (b.first - pivot.first) +
-                       static_cast<long long>(b.second - pivot.second) * (b.second - pivot.second);
+    int64_t dist_a = static_cast<int64_t>(a.first - pivot.first) * static_cast<int64_t>(a.first - pivot.first) +
+                     static_cast<int64_t>(a.second - pivot.second) * static_cast<int64_t>(a.second - pivot.second);
+    int64_t dist_b = static_cast<int64_t>(b.first - pivot.first) * static_cast<int64_t>(b.first - pivot.first) +
+                     static_cast<int64_t>(b.second - pivot.second) * static_cast<int64_t>(b.second - pivot.second);
     return dist_a < dist_b;
   });
 

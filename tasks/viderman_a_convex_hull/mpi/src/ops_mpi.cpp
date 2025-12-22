@@ -287,7 +287,7 @@ void VidermanAConvexHullMPI::MergeFragmentsOnRank0() {
   const int n = static_cast<int>(all_fragments_.size());
   std::vector<int> parent(static_cast<size_t>(n));
   std::vector<int> rank(static_cast<size_t>(n), 0);
-  std::ranges::iota(parent, 0);
+  std::iota(parent.begin(), parent.end(), 0);
 
   std::unordered_map<int64_t, int> point_to_component;
 

@@ -1,7 +1,6 @@
 #include <gtest/gtest.h>
 
-#include <cstddef>
-#include <cstdint>
+#include <algorithm>
 #include <random>
 #include <vector>
 
@@ -37,7 +36,7 @@ class VidermanARunPerfConvexHull : public ppc::util::BaseRunPerfTests<InType, Ou
     image.height = height;
     image.pixels.resize(static_cast<size_t>(width) * static_cast<size_t>(height), 0);
 
-    std::mt19937 gen(42);
+    std::mt19937 gen(std::random_device{}());
     std::uniform_int_distribution<> dist_x(0, width - 1);
     std::uniform_int_distribution<> dist_y(0, height - 1);
 
@@ -49,7 +48,7 @@ class VidermanARunPerfConvexHull : public ppc::util::BaseRunPerfTests<InType, Ou
     }
 
     for (int square_idx = 0; square_idx < 8; ++square_idx) {
-      const int square_size = 40 + square_idx * 20;
+      const int square_size = 40 + (square_idx * 20);
       const int start_x = (square_idx * 150) % (width - square_size);
       const int start_y = (square_idx * 120) % (height - square_size);
 

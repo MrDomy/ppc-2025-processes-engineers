@@ -1,7 +1,4 @@
 #pragma once
-
-#include <cstddef>
-#include <cstdint>
 #include <vector>
 
 #include "task/include/task.hpp"
@@ -16,6 +13,8 @@ class VidermanAConvexHullSEQ : public BaseTask {
   }
   explicit VidermanAConvexHullSEQ(const InType &in);
 
+  [[nodiscard]] static int64_t CrossProduct(const Point &o, const Point &a, const Point &b);
+
  private:
   bool ValidationImpl() override;
   bool PreProcessingImpl() override;
@@ -25,7 +24,6 @@ class VidermanAConvexHullSEQ : public BaseTask {
   static std::vector<Component> FindConnectedComponents(const ImageData &image);
   static std::vector<Point> BuildConvexHull(const std::vector<Point> &points);
 
-  [[nodiscard]] static int64_t CrossProduct(const Point &o, const Point &a, const Point &b);
   static void RemoveDuplicatePoints(std::vector<Point> &points);
 };
 

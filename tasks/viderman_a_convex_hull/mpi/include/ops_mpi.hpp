@@ -1,7 +1,4 @@
 #pragma once
-
-#include <cstddef>
-#include <cstdint>
 #include <vector>
 
 #include "task/include/task.hpp"
@@ -17,6 +14,9 @@ class VidermanAConvexHullMPI : public BaseTask {
 
   explicit VidermanAConvexHullMPI(const InType &in);
 
+  [[nodiscard]] static int64_t CrossProduct(const Point &o, const Point &a, const Point &b);
+  static void UnionSets(std::vector<int> &parent, std::vector<int> &rank, int x, int y);
+
  private:
   bool ValidationImpl() override;
   bool PreProcessingImpl() override;
@@ -31,13 +31,16 @@ class VidermanAConvexHullMPI : public BaseTask {
   void BroadcastFinalResult();
 
   static std::vector<Point> GrahamScan(const std::vector<Point> &points);
-  [[nodiscard]] static int64_t CrossProduct(const Point &o, const Point &a, const Point &b);
-
   static int FindRoot(std::vector<int> &parent, int x);
-  static void UnionSets(std::vector<int> &parent, std::vector<int> &rank, int x, int y);
 
   static void RemoveDuplicatePoints(std::vector<Point> &points);
   [[nodiscard]] static int64_t PointToHash(const Point &p);
+
+  void GatherComponentCounts(std::vector<int> &comp_counts, std::vector<int> &displacements, int &total_comps);
+  void GatherComponentSizes(const std::vector<int> &comp_counts, const std::vector<int> &displacements,
+                            std::vector<int> &all_comp_sizes);
+  void GatherComponentPoints(const std::vector<int> &comp_counts, const std::vector<int> &displacements,
+                             const std::vector<int> &all_comp_sizes, int total_points);
 
   int rank_{0};
   int size_{1};

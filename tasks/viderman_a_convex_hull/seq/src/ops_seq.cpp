@@ -1,8 +1,6 @@
 #include "viderman_a_convex_hull/seq/include/ops_seq.hpp"
 
 #include <algorithm>
-#include <cstddef>
-#include <cstdint>
 #include <queue>
 #include <utility>
 #include <vector>
@@ -10,6 +8,70 @@
 #include "viderman_a_convex_hull/common/include/common.hpp"
 
 namespace viderman_a_convex_hull {
+
+namespace {
+
+void ProcessPixelCell(const std::vector<uint8_t> &pixels, std::vector<bool> &visited, int col_idx, int row_idx,
+                      int width, int height, Component &comp) {
+  const size_t idx = static_cast<size_t>(row_idx) * static_cast<size_t>(width) + static_cast<size_t>(col_idx);
+
+  if (pixels[idx] != 255 || visited[idx]) {
+    return;
+  }
+
+  const std::vector<Point> directions = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
+  std::queue<Point> queue;
+  queue.emplace(col_idx, row_idx);
+  visited[idx] = true;
+  comp.pixels.emplace_back(col_idx, row_idx);
+
+  while (!queue.empty()) {
+    const Point current = queue.front();
+    queue.pop();
+
+    for (const auto &dir : directions) {
+      const int nx = current.first + dir.first;
+      const int ny = current.second + dir.second;
+
+      if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+        const size_t nidx = static_cast<size_t>(ny) * static_cast<size_t>(width) + static_cast<size_t>(nx);
+        if (pixels[nidx] == 255 && !visited[nidx]) {
+          visited[nidx] = true;
+          queue.emplace(nx, ny);
+          comp.pixels.emplace_back(nx, ny);
+        }
+      }
+    }
+  }
+}
+
+Point FindPivot(std::vector<Point> &pts) {
+  size_t pivot_idx = 0;
+  for (size_t idx = 1; idx < pts.size(); ++idx) {
+    if (pts[idx].second < pts[pivot_idx].second ||
+        (pts[idx].second == pts[pivot_idx].second && pts[idx].first < pts[pivot_idx].first)) {
+      pivot_idx = idx;
+    }
+  }
+  std::swap(pts[0], pts[pivot_idx]);
+  return pts[0];
+}
+
+std::vector<Point> RemoveCollinearPoints(const std::vector<Point> &pts, const Point &pivot) {
+  std::vector<Point> unique_pts;
+  unique_pts.push_back(pts[0]);
+
+  for (size_t idx = 1; idx < pts.size(); ++idx) {
+    while (idx < pts.size() - 1 && VidermanAConvexHullSEQ::CrossProduct(pivot, pts[idx], pts[idx + 1]) == 0) {
+      ++idx;
+    }
+    unique_pts.push_back(pts[idx]);
+  }
+
+  return unique_pts;
+}
+
+}  // namespace
 
 VidermanAConvexHullSEQ::VidermanAConvexHullSEQ(const InType &in) {
   SetTypeOfTask(GetStaticTypeOfTask());
@@ -56,17 +118,7 @@ std::vector<Point> VidermanAConvexHullSEQ::BuildConvexHull(const std::vector<Poi
   }
 
   std::vector<Point> pts = points;
-
-  size_t pivot_idx = 0;
-  for (size_t idx = 1; idx < pts.size(); ++idx) {
-    if (pts[idx].second < pts[pivot_idx].second ||
-        (pts[idx].second == pts[pivot_idx].second && pts[idx].first < pts[pivot_idx].first)) {
-      pivot_idx = idx;
-    }
-  }
-
-  std::swap(pts[0], pts[pivot_idx]);
-  const Point pivot = pts[0];
+  const Point pivot = FindPivot(pts);
 
   std::ranges::sort(pts.begin() + 1, pts.end(), [&pivot](const Point &a, const Point &b) {
     const int64_t cross = CrossProduct(pivot, a, b);
@@ -83,15 +135,7 @@ std::vector<Point> VidermanAConvexHullSEQ::BuildConvexHull(const std::vector<Poi
     return dist_a < dist_b;
   });
 
-  std::vector<Point> unique_pts;
-  unique_pts.push_back(pts[0]);
-
-  for (size_t idx = 1; idx < pts.size(); ++idx) {
-    while (idx < pts.size() - 1 && CrossProduct(pivot, pts[idx], pts[idx + 1]) == 0) {
-      ++idx;
-    }
-    unique_pts.push_back(pts[idx]);
-  }
+  std::vector<Point> unique_pts = RemoveCollinearPoints(pts, pivot);
 
   if (unique_pts.size() <= 3) {
     return unique_pts;
@@ -105,7 +149,7 @@ std::vector<Point> VidermanAConvexHullSEQ::BuildConvexHull(const std::vector<Poi
   hull.push_back(unique_pts[2]);
 
   for (size_t idx = 3; idx < unique_pts.size(); ++idx) {
-    while (hull.size() >= 2 && CrossProduct(hull[hull.size() - 2], hull.back(), unique_pts[idx]) <= 0) {
+    while (hull.size() >= 2 && CrossProduct(hull[hull.size() - 2U], hull.back(), unique_pts[idx]) <= 0) {
       hull.pop_back();
     }
     hull.push_back(unique_pts[idx]);
@@ -119,46 +163,15 @@ std::vector<Component> VidermanAConvexHullSEQ::FindConnectedComponents(const Ima
   const int height = image.height;
   const auto &pixels = image.pixels;
 
-  std::vector<bool> visited((static_cast<size_t>(width) * static_cast<size_t>(height)), false);
+  std::vector<bool> visited(static_cast<size_t>(width) * static_cast<size_t>(height), false);
   std::vector<Component> components;
-
-  const std::vector<std::pair<int, int>> directions = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
 
   for (int row_idx = 0; row_idx < height; ++row_idx) {
     for (int col_idx = 0; col_idx < width; ++col_idx) {
-      const size_t idx = (static_cast<size_t>(row_idx) * static_cast<size_t>(width)) + static_cast<size_t>(col_idx);
-
-      if (pixels[idx] == 255 && !visited[idx]) {
-        Component comp;
-        std::queue<Point> q;
-
-        q.emplace(col_idx, row_idx);
-        visited[idx] = true;
-        comp.pixels.emplace_back(col_idx, row_idx);
-
-        while (!q.empty()) {
-          const Point current = q.front();
-          q.pop();
-
-          for (const auto &dir : directions) {
-            const int nx = current.first + dir.first;
-            const int ny = current.second + dir.second;
-
-            if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
-              const size_t nidx = (static_cast<size_t>(ny) * static_cast<size_t>(width)) + static_cast<size_t>(nx);
-
-              if (pixels[nidx] == 255 && !visited[nidx]) {
-                visited[nidx] = true;
-                q.emplace(nx, ny);
-                comp.pixels.emplace_back(nx, ny);
-              }
-            }
-          }
-        }
-
-        if (!comp.pixels.empty()) {
-          components.push_back(std::move(comp));
-        }
+      Component comp;
+      ProcessPixelCell(pixels, visited, col_idx, row_idx, width, height, comp);
+      if (!comp.pixels.empty()) {
+        components.push_back(std::move(comp));
       }
     }
   }

@@ -1,4 +1,6 @@
 #pragma once
+
+#include <cstdint>
 #include <vector>
 
 #include "task/include/task.hpp"
@@ -39,6 +41,12 @@ class VidermanAConvexHullMPI : public BaseTask {
   void GatherComponentCounts(std::vector<int> &comp_counts, std::vector<int> &displacements, int &total_comps);
   void GatherComponentSizes(const std::vector<int> &comp_counts, const std::vector<int> &displacements,
                             std::vector<int> &all_comp_sizes);
+  std::vector<int> PackLocalPoints();
+  void ComputeDisplacementsAndCounts(const std::vector<int> &comp_counts, const std::vector<int> &displacements,
+                                     const std::vector<int> &all_comp_sizes, std::vector<int> &point_displacements,
+                                     std::vector<int> &point_recvcounts) const;
+  void UnpackAllPoints(const std::vector<int> &all_points_data, const std::vector<int> &comp_counts,
+                       const std::vector<int> &displacements, const std::vector<int> &all_comp_sizes);
   void GatherComponentPoints(const std::vector<int> &comp_counts, const std::vector<int> &displacements,
                              const std::vector<int> &all_comp_sizes, int total_points);
 

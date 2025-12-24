@@ -1,6 +1,8 @@
 #include "viderman_a_convex_hull/seq/include/ops_seq.hpp"
 
 #include <algorithm>
+#include <cstddef>
+#include <cstdint>
 #include <queue>
 #include <utility>
 #include <vector>
@@ -13,7 +15,7 @@ namespace {
 
 void ProcessPixelCell(const std::vector<uint8_t> &pixels, std::vector<bool> &visited, int col_idx, int row_idx,
                       int width, int height, Component &comp) {
-  const size_t idx = static_cast<size_t>(row_idx) * static_cast<size_t>(width) + static_cast<size_t>(col_idx);
+  const size_t idx = (static_cast<size_t>(row_idx) * static_cast<size_t>(width)) + static_cast<size_t>(col_idx);
 
   if (pixels[idx] != 255 || visited[idx]) {
     return;
@@ -34,7 +36,7 @@ void ProcessPixelCell(const std::vector<uint8_t> &pixels, std::vector<bool> &vis
       const int ny = current.second + dir.second;
 
       if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
-        const size_t nidx = static_cast<size_t>(ny) * static_cast<size_t>(width) + static_cast<size_t>(nx);
+        const size_t nidx = (static_cast<size_t>(ny) * static_cast<size_t>(width)) + static_cast<size_t>(nx);
         if (pixels[nidx] == 255 && !visited[nidx]) {
           visited[nidx] = true;
           queue.emplace(nx, ny);

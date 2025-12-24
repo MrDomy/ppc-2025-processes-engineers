@@ -1,27 +1,30 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <array>
 #include <cstddef>
 #include <random>
+#include <string>
+#include <tuple>
 #include <vector>
 
-#include "util/include/perf_test_util.hpp"
+#include "util/include/func_test_util.hpp"
 #include "viderman_a_convex_hull/common/include/common.hpp"
 #include "viderman_a_convex_hull/mpi/include/ops_mpi.hpp"
 #include "viderman_a_convex_hull/seq/include/ops_seq.hpp"
 
 namespace viderman_a_convex_hull {
 
-class VidermanARunPerfConvexHull : public ppc::util::BaseRunPerfTests<InType, OutType> {
+class VidermanARunFuncConvexHull : public ppc::util::BaseRunFuncTests<InType, OutType, TestType> {
  protected:
   void SetUp() override {
-    const int size = 4096;
+    const int size = 1024;
     input_data_ = CreateComplexImage(size, size);
   }
 
   bool CheckTestOutputData(OutType &output_data) final {
-    return output_data.empty() || std::all_of(output_data.begin(), output_data.end(),
-                                              [](const auto &component) { return !component.pixels.empty(); });
+    return output_data.empty() || std::ranges::all_of(output_data.begin(), output_data.end(),
+                                                      [](const auto &component) { return !component.pixels.empty(); });
   }
 
   InType GetTestInputData() final {
@@ -78,19 +81,28 @@ class VidermanARunPerfConvexHull : public ppc::util::BaseRunPerfTests<InType, Ou
 
     return image;
   }
+
+ public:
+  static std::string PrintTestParam(const TestType &test_param) {
+    return std::get<0>(test_param);
+  }
 };
 
-TEST_P(VidermanARunPerfConvexHull, RunPerfModes) {
+TEST_P(VidermanARunFuncConvexHull, FullCycle) {
   ExecuteTest(GetParam());
 }
 
-const auto kAllPerfTasks = ppc::util::MakeAllPerfTasks<InType, VidermanAConvexHullMPI, VidermanAConvexHullSEQ>(
-    PPC_SETTINGS_viderman_a_convex_hull);
+const std::array<TestType, 2> kTestParam = {std::make_tuple("ImagePath", "tasks/viderman_a_convex_hull/data/pic.jpg"),
+                                            std::make_tuple("ImageGenerated", "")};
 
-const auto kGtestValues = ppc::util::TupleToGTestValues(kAllPerfTasks);
+const auto kTestTasksList = std::tuple_cat(
+    ppc::util::AddFuncTask<VidermanAConvexHullSEQ, InType>(kTestParam, PPC_SETTINGS_viderman_a_convex_hull),
+    ppc::util::AddFuncTask<VidermanAConvexHullMPI, InType>(kTestParam, PPC_SETTINGS_viderman_a_convex_hull));
 
-const auto kPerfTestName = VidermanARunPerfConvexHull::CustomPerfTestName;
+const auto kGtestValues = ppc::util::ExpandToValues(kTestTasksList);
 
-INSTANTIATE_TEST_SUITE_P(ConvexHullPerfTests, VidermanARunPerfConvexHull, kGtestValues, kPerfTestName);
+const auto kTestName = VidermanARunFuncConvexHull::PrintFuncTestName<VidermanARunFuncConvexHull>;
+
+INSTANTIATE_TEST_SUITE_P(ConvexHullFuncTests, VidermanARunFuncConvexHull, kGtestValues, kTestName);
 
 }  // namespace viderman_a_convex_hull

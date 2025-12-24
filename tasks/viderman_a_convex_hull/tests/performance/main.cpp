@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <cstddef>
 #include <random>
 #include <vector>
 
@@ -19,8 +20,8 @@ class VidermanARunPerfConvexHull : public ppc::util::BaseRunPerfTests<InType, Ou
   }
 
   bool CheckTestOutputData(OutType &output_data) final {
-    return output_data.empty() ||
-           std::ranges::all_of(output_data, [](const auto &component) { return !component.pixels.empty(); });
+    return output_data.empty() || std::ranges::all_of(output_data.begin(), output_data.end(),
+                                                      [](const auto &component) { return !component.pixels.empty(); });
   }
 
   InType GetTestInputData() final {
@@ -36,7 +37,8 @@ class VidermanARunPerfConvexHull : public ppc::util::BaseRunPerfTests<InType, Ou
     image.height = height;
     image.pixels.resize(static_cast<size_t>(width) * static_cast<size_t>(height), 0);
 
-    std::mt19937 gen(std::random_device{}());
+    std::random_device rd;
+    std::mt19937 gen(rd());
     std::uniform_int_distribution<> dist_x(0, width - 1);
     std::uniform_int_distribution<> dist_y(0, height - 1);
 
@@ -82,7 +84,7 @@ TEST_P(VidermanARunPerfConvexHull, RunPerfModes) {
   ExecuteTest(GetParam());
 }
 
-const auto kAllPerfTasks = ppc::util::MakeAllPerfTasks<InType, VidermanAConvexHullMPI, VidermanAConvexHullSEQ>(
+const auto kAllPerfTasks = ppc::util::MakeAllPerfTasks<InType, VidermanAConvexHullSEQ, VidermanAConvexHullMPI>(
     PPC_SETTINGS_viderman_a_convex_hull);
 
 const auto kGtestValues = ppc::util::TupleToGTestValues(kAllPerfTasks);

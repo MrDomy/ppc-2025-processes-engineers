@@ -1,4 +1,6 @@
 #pragma once
+
+#include <cstdint>
 #include <vector>
 
 #include "task/include/task.hpp"

@@ -27,7 +27,7 @@ using Components = std::vector<Component>;
 
 using InType = ImageData;
 using OutType = Components;
-using TestType = std::tuple<int, std::string>;
+using TestType = std::tuple<std::string, std::string>;
 
 using BaseTask = ppc::task::Task<InType, OutType>;
 

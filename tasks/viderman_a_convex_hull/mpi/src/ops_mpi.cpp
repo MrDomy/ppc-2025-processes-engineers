@@ -3,8 +3,11 @@
 #include <mpi.h>
 
 #include <algorithm>
+#include <cstddef>
+#include <cstdint>
 #include <numeric>
 #include <queue>
+#include <ranges>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -17,7 +20,7 @@ namespace {
 
 void ProcessPixelCell(const std::vector<uint8_t> &pixels, std::vector<bool> &visited, int col_idx, int row_idx,
                       int width, int height, int start_row, Component &comp) {
-  const size_t idx = static_cast<size_t>(row_idx) * static_cast<size_t>(width) + static_cast<size_t>(col_idx);
+  const size_t idx = (static_cast<size_t>(row_idx) * static_cast<size_t>(width)) + static_cast<size_t>(col_idx);
 
   if (pixels[idx] != 255 || visited[idx]) {
     return;
@@ -39,7 +42,7 @@ void ProcessPixelCell(const std::vector<uint8_t> &pixels, std::vector<bool> &vis
       const int ny = current.second + dir.second;
 
       if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
-        const size_t nidx = static_cast<size_t>(ny) * static_cast<size_t>(width) + static_cast<size_t>(nx);
+        const size_t nidx = (static_cast<size_t>(ny) * static_cast<size_t>(width)) + static_cast<size_t>(nx);
         if (pixels[nidx] == 255 && !visited[nidx]) {
           visited[nidx] = true;
           queue.emplace(nx, ny);
@@ -179,9 +182,6 @@ void ReconstructComponentsFromData(OutType &output, int total_components, const 
 VidermanAConvexHullMPI::VidermanAConvexHullMPI(const InType &in) {
   SetTypeOfTask(GetStaticTypeOfTask());
   GetInput() = in;
-
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank_);
-  MPI_Comm_size(MPI_COMM_WORLD, &size_);
 }
 
 bool VidermanAConvexHullMPI::ValidationImpl() {
@@ -203,6 +203,9 @@ bool VidermanAConvexHullMPI::PreProcessingImpl() {
 }
 
 bool VidermanAConvexHullMPI::RunImpl() {
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank_);
+  MPI_Comm_size(MPI_COMM_WORLD, &size_);
+
   DistributeImageData();
   FindLocalComponents();
   GatherAllFragments();
@@ -257,8 +260,9 @@ void VidermanAConvexHullMPI::DistributeImageData() {
   local_image_.pixels.resize(local_pixel_count);
 
   const std::vector<uint8_t> *input_pixels = (rank_ == 0) ? &input.pixels : nullptr;
-  MPI_Scatterv(input_pixels ? input_pixels->data() : nullptr, send_counts.data(), displacements.data(), MPI_UINT8_T,
-               local_image_.pixels.data(), static_cast<int>(local_pixel_count), MPI_UINT8_T, 0, MPI_COMM_WORLD);
+  MPI_Scatterv(input_pixels != nullptr ? input_pixels->data() : nullptr, send_counts.data(), displacements.data(),
+               MPI_UINT8_T, local_image_.pixels.data(), static_cast<int>(local_pixel_count), MPI_UINT8_T, 0,
+               MPI_COMM_WORLD);
 }
 
 void VidermanAConvexHullMPI::FindLocalComponents() {
@@ -316,71 +320,94 @@ void VidermanAConvexHullMPI::GatherComponentSizes(const std::vector<int> &comp_c
               recvcounts_comp.data(), displacements.data(), MPI_INT, 0, MPI_COMM_WORLD);
 }
 
+std::vector<int> VidermanAConvexHullMPI::PackLocalPoints() {
+  std::vector<int> local_points;
+  int total_points = 0;
+  for (const auto &comp : local_components_) {
+    total_points += static_cast<int>(comp.pixels.size());
+  }
+
+  local_points.reserve(static_cast<size_t>(total_points) * 2U);
+  for (const auto &comp : local_components_) {
+    for (const auto &point : comp.pixels) {
+      local_points.push_back(point.first);
+      local_points.push_back(point.second);
+    }
+  }
+  return local_points;
+}
+
+void VidermanAConvexHullMPI::ComputeDisplacementsAndCounts(const std::vector<int> &comp_counts,
+                                                           const std::vector<int> &displacements,
+                                                           const std::vector<int> &all_comp_sizes,
+                                                           std::vector<int> &point_displacements,
+                                                           std::vector<int> &point_recvcounts) const {
+  point_displacements.assign(static_cast<size_t>(size_), 0);
+  point_recvcounts.assign(static_cast<size_t>(size_), 0);
+
+  if (rank_ != 0) {
+    return;
+  }
+
+  int offset = 0;
+  for (int proc = 0; proc < size_; ++proc) {
+    point_displacements[static_cast<size_t>(proc)] = offset * 2;
+    int proc_points = 0;
+    for (int i = 0; i < comp_counts[static_cast<size_t>(proc)]; ++i) {
+      int idx = displacements[static_cast<size_t>(proc)] + i;
+      proc_points += all_comp_sizes[static_cast<size_t>(idx)];
+    }
+    point_recvcounts[static_cast<size_t>(proc)] = proc_points * 2;
+    offset += proc_points;
+  }
+}
+
+void VidermanAConvexHullMPI::UnpackAllPoints(const std::vector<int> &all_points_data,
+                                             const std::vector<int> &comp_counts, const std::vector<int> &displacements,
+                                             const std::vector<int> &all_comp_sizes) {
+  all_fragments_.clear();
+  int points_offset = 0;
+
+  for (int proc = 0; proc < size_; ++proc) {
+    for (int comp_idx = 0; comp_idx < comp_counts[static_cast<size_t>(proc)]; ++comp_idx) {
+      Component comp;
+      int idx = displacements[static_cast<size_t>(proc)] + comp_idx;
+      int comp_size = all_comp_sizes[static_cast<size_t>(idx)];
+      comp.pixels.resize(static_cast<size_t>(comp_size));
+
+      for (int point_idx = 0; point_idx < comp_size; ++point_idx) {
+        comp.pixels[static_cast<size_t>(point_idx)] = {all_points_data[static_cast<size_t>(points_offset)],
+                                                       all_points_data[static_cast<size_t>(points_offset) + 1]};
+        points_offset += 2;
+      }
+      all_fragments_.push_back(std::move(comp));
+    }
+  }
+}
+
 void VidermanAConvexHullMPI::GatherComponentPoints(const std::vector<int> &comp_counts,
                                                    const std::vector<int> &displacements,
                                                    const std::vector<int> &all_comp_sizes, int total_points) {
-  std::vector<int> local_points_data;
-  int local_total_points = 0;
-  for (const auto &comp : local_components_) {
-    local_total_points += static_cast<int>(comp.pixels.size());
-  }
-
-  local_points_data.reserve(static_cast<size_t>(local_total_points) * 2U);
-  for (const auto &comp : local_components_) {
-    for (const auto &point : comp.pixels) {
-      local_points_data.push_back(point.first);
-      local_points_data.push_back(point.second);
-    }
-  }
-
-  std::vector<int> all_points_data;
-  if (rank_ == 0) {
-    all_points_data.resize(static_cast<size_t>(total_points));
-  }
+  auto local_points_data = PackLocalPoints();
 
   std::vector<int> point_displacements(static_cast<size_t>(size_), 0);
   std::vector<int> point_recvcounts(static_cast<size_t>(size_), 0);
+  ComputeDisplacementsAndCounts(comp_counts, displacements, all_comp_sizes, point_displacements, point_recvcounts);
 
+  std::vector<int> all_points_data;
   if (rank_ == 0) {
-    int offset = 0;
-    for (int proc = 0; proc < size_; ++proc) {
-      point_displacements[static_cast<size_t>(proc)] = offset * 2;
-      int proc_points = 0;
-      for (int i = 0; i < comp_counts[static_cast<size_t>(proc)]; ++i) {
-        const int idx = displacements[static_cast<size_t>(proc)] + i;
-        proc_points += all_comp_sizes[static_cast<size_t>(idx)];
-      }
-      point_recvcounts[static_cast<size_t>(proc)] = proc_points * 2;
-      offset += proc_points;
-    }
+    all_points_data.resize(static_cast<size_t>(total_points) * 2);
   }
 
   MPI_Bcast(point_recvcounts.data(), size_, MPI_INT, 0, MPI_COMM_WORLD);
   MPI_Bcast(point_displacements.data(), size_, MPI_INT, 0, MPI_COMM_WORLD);
 
-  MPI_Gatherv(local_points_data.data(), local_total_points * 2, MPI_INT, rank_ == 0 ? all_points_data.data() : nullptr,
-              point_recvcounts.data(), point_displacements.data(), MPI_INT, 0, MPI_COMM_WORLD);
+  MPI_Gatherv(local_points_data.data(), static_cast<int>(local_points_data.size()), MPI_INT,
+              rank_ == 0 ? all_points_data.data() : nullptr, point_recvcounts.data(), point_displacements.data(),
+              MPI_INT, 0, MPI_COMM_WORLD);
 
   if (rank_ == 0) {
-    all_fragments_.clear();
-    int points_offset = 0;
-
-    for (int proc = 0; proc < size_; ++proc) {
-      for (int comp_idx = 0; comp_idx < comp_counts[static_cast<size_t>(proc)]; ++comp_idx) {
-        Component comp;
-        const int idx = displacements[static_cast<size_t>(proc)] + comp_idx;
-        const int comp_size = all_comp_sizes[static_cast<size_t>(idx)];
-        comp.pixels.resize(static_cast<size_t>(comp_size));
-
-        for (int point_idx = 0; point_idx < comp_size; ++point_idx) {
-          comp.pixels[static_cast<size_t>(point_idx)] = {all_points_data[static_cast<size_t>(points_offset)],
-                                                         all_points_data[static_cast<size_t>(points_offset) + 1U]};
-          points_offset += 2;
-        }
-
-        all_fragments_.push_back(std::move(comp));
-      }
-    }
+    UnpackAllPoints(all_points_data, comp_counts, displacements, all_comp_sizes);
   }
 }
 

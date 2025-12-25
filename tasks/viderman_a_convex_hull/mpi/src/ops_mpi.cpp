@@ -6,9 +6,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
-#include <numeric>
 #include <queue>
-#include <ranges>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -474,7 +472,9 @@ void VidermanAConvexHullMPI::MergeFragmentsOnRank0() {
   const int n = static_cast<int>(all_fragments_.size());
   std::vector<int> parent(static_cast<size_t>(n));
   std::vector<int> rank(static_cast<size_t>(n), 0);
-  std::ranges::iota(parent, 0);
+  for (size_t i = 0; i < parent.size(); ++i) {
+    parent[i] = static_cast<int>(i);
+  }
 
   std::unordered_map<int64_t, int> point_to_component;
   BuildPointToComponentMap(all_fragments_, point_to_component);

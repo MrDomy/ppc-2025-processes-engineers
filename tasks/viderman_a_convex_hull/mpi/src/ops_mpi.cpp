@@ -3,6 +3,7 @@
 #include <mpi.h>
 
 #include <algorithm>
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <numeric>
@@ -37,9 +38,9 @@ void ProcessPixelCell(const std::vector<uint8_t> &pixels, std::vector<bool> &vis
     const Point current = queue.front();
     queue.pop();
 
-    for (const auto &dir : directions) {
-      const int nx = current.first + dir.first;
-      const int ny = current.second + dir.second;
+    for (const auto &m_directions : directions) {
+      const int nx = current.first + m_directions.first;
+      const int ny = current.second + m_directions.second;
 
       if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
         const size_t nidx = (static_cast<size_t>(ny) * static_cast<size_t>(width)) + static_cast<size_t>(nx);
@@ -68,21 +69,22 @@ void BuildPointToComponentMap(const std::vector<Component> &all_fragments,
 void CheckAndMergeNeighbors(const Point &point, int comp_idx,
                             const std::unordered_map<int64_t, int> &point_to_component, std::vector<int> &parent,
                             std::vector<int> &rank) {
-  for (int dx = -1; dx <= 1; ++dx) {
-    for (int dy = -1; dy <= 1; ++dy) {
-      if (dx == 0 && dy == 0) {
-        continue;
-      }
+  const std::array<Point, 4> directions = {{
+      {1, 0},
+      {-1, 0},
+      {0, 1},
+      {0, -1},
+  }};
 
-      const Point neighbor = {point.first + dx, point.second + dy};
-      const int64_t hash = (static_cast<int64_t>(neighbor.first) << 32) | static_cast<uint32_t>(neighbor.second);
-      const auto it = point_to_component.find(hash);
+  for (const auto &m_directions : directions) {
+    const Point neighbor = {point.first + m_directions.first, point.second + m_directions.second};
+    const int64_t hash = (static_cast<int64_t>(neighbor.first) << 32) | static_cast<uint32_t>(neighbor.second);
 
-      if (it != point_to_component.end()) {
-        const int neighbor_comp_idx = it->second;
-        if (comp_idx != neighbor_comp_idx) {
-          VidermanAConvexHullMPI::UnionSets(parent, rank, comp_idx, neighbor_comp_idx);
-        }
+    const auto current_comp = point_to_component.find(hash);
+    if (current_comp != point_to_component.end()) {
+      const int neighbor_comp_idx = current_comp->second;
+      if (comp_idx != neighbor_comp_idx) {
+        VidermanAConvexHullMPI::UnionSets(parent, rank, comp_idx, neighbor_comp_idx);
       }
     }
   }
@@ -472,7 +474,7 @@ void VidermanAConvexHullMPI::MergeFragmentsOnRank0() {
   const int n = static_cast<int>(all_fragments_.size());
   std::vector<int> parent(static_cast<size_t>(n));
   std::vector<int> rank(static_cast<size_t>(n), 0);
-  std::iota(parent.begin(), parent.end(), 0);
+  std::ranges::iota(parent.begin(), parent.end(), 0);
 
   std::unordered_map<int64_t, int> point_to_component;
   BuildPointToComponentMap(all_fragments_, point_to_component);

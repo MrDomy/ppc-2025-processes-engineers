@@ -36,17 +36,17 @@ class VidermanAConvexHullMPI : public BaseTask {
   static int FindRoot(std::vector<int> &parent, int x);
 
   static void RemoveDuplicatePoints(std::vector<Point> &points);
-  [[nodiscard]] static int64_t PointToHash(const Point &p);
 
-  void GatherComponentCounts(std::vector<int> &comp_counts, std::vector<int> &displacements, int &total_comps);
-  void GatherComponentSizes(const std::vector<int> &comp_counts, const std::vector<int> &displacements,
-                            std::vector<int> &all_comp_sizes);
   std::vector<int> PackLocalPoints();
   void ComputeDisplacementsAndCounts(const std::vector<int> &comp_counts, const std::vector<int> &displacements,
                                      const std::vector<int> &all_comp_sizes, std::vector<int> &point_displacements,
                                      std::vector<int> &point_recvcounts) const;
   void UnpackAllPoints(const std::vector<int> &all_points_data, const std::vector<int> &comp_counts,
                        const std::vector<int> &displacements, const std::vector<int> &all_comp_sizes);
+
+  void GatherComponentCounts(std::vector<int> &comp_counts, std::vector<int> &displacements, int &total_comps);
+  void GatherComponentSizes(const std::vector<int> &comp_counts, const std::vector<int> &displacements,
+                            std::vector<int> &all_comp_sizes);
   void GatherComponentPoints(const std::vector<int> &comp_counts, const std::vector<int> &displacements,
                              const std::vector<int> &all_comp_sizes, int total_points);
 
